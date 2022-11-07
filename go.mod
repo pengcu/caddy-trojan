@@ -1,6 +1,6 @@
 module github.com/pengcu/caddy-trojan
 
-go 1.18
+go 1.19
 
 require (
 	github.com/caddyserver/caddy/v2 v2.6.2

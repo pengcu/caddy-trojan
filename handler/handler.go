@@ -112,12 +112,12 @@ func (m *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyht
 			return nil
 		}
 		if m.Verbose {
-			m.Logger.Info(fmt.Sprintf("handle trojan websocket.Conn from %v", r.RemoteAddr))
+			m.Logger.Info(fmt.Sprintf("handle trojan grpc.Conn from %v", r.RemoteAddr))
 		}
 
 		nr, nw, err := trojan.Handle(io.Reader(c), io.Writer(c))
 		if err != nil {
-			m.Logger.Error(fmt.Sprintf("handle websocket error: %v", err))
+			m.Logger.Error(fmt.Sprintf("handle grpc error: %v", err))
 		}
 		m.Upstream.Consume(utils.ByteSliceToString(b[:trojan.HeaderLen]), nr, nw)
 		return nil
