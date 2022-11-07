@@ -15,10 +15,10 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/pengcu/caddy-trojan/app"
+	"github.com/pengcu/caddy-trojan/grpc"
 	"github.com/pengcu/caddy-trojan/trojan"
 	"github.com/pengcu/caddy-trojan/utils"
 	"github.com/pengcu/caddy-trojan/websocket"
-    "github.com/pengcu/caddy-trojan/grpc"
 )
 
 func init() {
@@ -35,7 +35,7 @@ type Handler struct {
 	WebSocket bool `json:"websocket,omitempty"`
 	Connect   bool `json:"connect_method,omitempty"`
 	Verbose   bool `json:"verbose,omitempty"`
-    GRPC      bool `json:"grpc,omitempty"`
+	GRPC      bool `json:"grpc,omitempty"`
 
 	// Upstream is ...
 	Upstream app.Upstream `json:"-,omitempty"`
@@ -98,8 +98,8 @@ func (m *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyht
 		m.Upstream.Consume(auth, nr, nw)
 		return nil
 	}
-    // handle grpc
-    if m.GRPC && grpc.IsGRPC(w, r) {
+	// handle grpc
+	if m.GRPC && grpc.IsGRPC(w, r) {
 		c := grpc.NewConn(r, w)
 		defer c.Close()
 
@@ -172,8 +172,8 @@ func (h *Handler) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 				return d.Err("only one websocket is not allowed")
 			}
 			h.WebSocket = true
-        case "grpc":
-            if h.GRPC {
+		case "grpc":
+			if h.GRPC {
 				return d.Err("only one grpc is not allowed")
 			}
 			h.GRPC = true
