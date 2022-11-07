@@ -8,7 +8,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/imgk/caddy-trojan/socks"
+	"github.com/pengcu/caddy-trojan/socks"
 
 	"github.com/imgk/memory-go"
 )

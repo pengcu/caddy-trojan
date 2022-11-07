@@ -12,9 +12,9 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/imgk/caddy-trojan/app"
-	"github.com/imgk/caddy-trojan/trojan"
-	"github.com/imgk/caddy-trojan/utils"
+	"github.com/pengcu/caddy-trojan/app"
+	"github.com/pengcu/caddy-trojan/trojan"
+	"github.com/pengcu/caddy-trojan/utils"
 )
 
 func init() {
@@ -32,6 +32,8 @@ type ListenerWrapper struct {
 	Proxy app.Proxy `json:"-,omitempty"`
 	// Logger is ...
 	Logger *zap.Logger `json:"-,omitempty"`
+	// Verbose is ...
+	Verbose bool `json:"verbose,omitempty"`
 }
 
 // CaddyModule returns the Caddy module information.
@@ -46,7 +48,7 @@ func (ListenerWrapper) CaddyModule() caddy.ModuleInfo {
 func (m *ListenerWrapper) Provision(ctx caddy.Context) error {
 	m.Logger = ctx.Logger(m)
 	if !ctx.AppIsConfigured(app.CaddyAppID) {
-		return errors.New("trojan is not configured")
+		return errors.New("listener: trojan is not configured")
 	}
 	mod, err := ctx.App(app.CaddyAppID)
 	if err != nil {
@@ -61,6 +63,7 @@ func (m *ListenerWrapper) Provision(ctx caddy.Context) error {
 // WrapListener implements caddy.ListenWrapper
 func (m *ListenerWrapper) WrapListener(l net.Listener) net.Listener {
 	ln := NewListener(l, m.Upstream, m.Proxy, m.Logger)
+	ln.Verbose = m.Verbose
 	go ln.loop()
 	return ln
 }
@@ -79,7 +82,7 @@ var (
 
 // Listener is ...
 type Listener struct {
-	Verbose bool `json:"verbose,omitempty"`
+	Verbose bool
 
 	// Listener is ...
 	net.Listener
@@ -152,7 +155,9 @@ func (l *Listener) loop() {
 					if errors.Is(err, io.EOF) {
 						lg.Error(fmt.Sprintf("read prefix error: read tcp %v -> %v: read: %v", c.RemoteAddr(), c.LocalAddr(), err))
 					} else {
-						lg.Error(fmt.Sprintf("read prefix error: %v", err))
+						lg.Error(fmt.Sprintf("read prefix error, not io, rewind and let normal caddy deal with it: %v", err))
+						l.conns <- utils.RewindConn(c, b[:n+1])
+						return
 					}
 					c.Close()
 					return

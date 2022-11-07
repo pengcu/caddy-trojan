@@ -14,10 +14,11 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/imgk/caddy-trojan/app"
-	"github.com/imgk/caddy-trojan/trojan"
-	"github.com/imgk/caddy-trojan/utils"
-	"github.com/imgk/caddy-trojan/websocket"
+	"github.com/pengcu/caddy-trojan/app"
+	"github.com/pengcu/caddy-trojan/trojan"
+	"github.com/pengcu/caddy-trojan/utils"
+	"github.com/pengcu/caddy-trojan/websocket"
+    "github.com/pengcu/caddy-trojan/grpc"
 )
 
 func init() {
@@ -34,6 +35,7 @@ type Handler struct {
 	WebSocket bool `json:"websocket,omitempty"`
 	Connect   bool `json:"connect_method,omitempty"`
 	Verbose   bool `json:"verbose,omitempty"`
+    GRPC      bool `json:"grpc,omitempty"`
 
 	// Upstream is ...
 	Upstream app.Upstream `json:"-,omitempty"`
@@ -57,7 +59,7 @@ func (Handler) CaddyModule() caddy.ModuleInfo {
 func (m *Handler) Provision(ctx caddy.Context) error {
 	m.Logger = ctx.Logger(m)
 	if !ctx.AppIsConfigured(app.CaddyAppID) {
-		return errors.New("trojan is not configured")
+		return errors.New("handler: trojan is not configured")
 	}
 	mod, err := ctx.App(app.CaddyAppID)
 	if err != nil {
@@ -74,15 +76,12 @@ func (m *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyht
 	// trojan over http2/http3
 	// use CONNECT method, put trojan header as Proxy-Authorization
 	if m.Connect && r.Method == http.MethodConnect {
-		// base64.StdEncoding.Encode(hex.Encode(sha256.Sum224([]byte("Test1234"))))
-		const AuthLen = 76
-
 		// handle trojan over http2/http3
 		if r.ProtoMajor == 1 {
 			return next.ServeHTTP(w, r)
 		}
 		auth := strings.TrimPrefix(r.Header.Get("Proxy-Authorization"), "Basic ")
-		if len(auth) != AuthLen {
+		if len(auth) != trojan.HeaderLen {
 			return next.ServeHTTP(w, r)
 		}
 		if ok := m.Upstream.Validate(auth); !ok {
@@ -97,6 +96,30 @@ func (m *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request, next caddyht
 			m.Logger.Error(fmt.Sprintf("handle http%d error: %v", r.ProtoMajor, err))
 		}
 		m.Upstream.Consume(auth, nr, nw)
+		return nil
+	}
+    // handle grpc
+    if m.GRPC && grpc.IsGRPC(w, r) {
+		c := grpc.NewConn(r, w)
+		defer c.Close()
+
+		b := [trojan.HeaderLen + 2]byte{}
+		if _, err := io.ReadFull(c, b[:]); err != nil {
+			m.Logger.Error(fmt.Sprintf("read trojan header error: %v", err))
+			return nil
+		}
+		if ok := m.Upstream.Validate(utils.ByteSliceToString(b[:trojan.HeaderLen])); !ok {
+			return nil
+		}
+		if m.Verbose {
+			m.Logger.Info(fmt.Sprintf("handle trojan websocket.Conn from %v", r.RemoteAddr))
+		}
+
+		nr, nw, err := trojan.Handle(io.Reader(c), io.Writer(c))
+		if err != nil {
+			m.Logger.Error(fmt.Sprintf("handle websocket error: %v", err))
+		}
+		m.Upstream.Consume(utils.ByteSliceToString(b[:trojan.HeaderLen]), nr, nw)
 		return nil
 	}
 
@@ -149,6 +172,11 @@ func (h *Handler) UnmarshalCaddyfile(d *caddyfile.Dispenser) error {
 				return d.Err("only one websocket is not allowed")
 			}
 			h.WebSocket = true
+        case "grpc":
+            if h.GRPC {
+				return d.Err("only one grpc is not allowed")
+			}
+			h.GRPC = true
 		case "connect_method":
 			if h.Connect {
 				return d.Err("only one connect_method is not allowed")

@@ -8,7 +8,7 @@ import (
 
 	"github.com/caddyserver/caddy/v2"
 
-	"github.com/imgk/caddy-trojan/app"
+	"github.com/pengcu/caddy-trojan/app"
 )
 
 func init() {
@@ -32,7 +32,7 @@ func (Admin) CaddyModule() caddy.ModuleInfo {
 // Provision is ...
 func (al *Admin) Provision(ctx caddy.Context) error {
 	if !ctx.AppIsConfigured(app.CaddyAppID) {
-		return errors.New("trojan is not configured")
+		return nil
 	}
 	mod, err := ctx.App(app.CaddyAppID)
 	if err != nil {
@@ -55,14 +55,18 @@ func (al *Admin) Routes() []caddy.AdminRoute {
 			Handler: caddy.AdminHandlerFunc(al.AddUser),
 		},
 		{
-			Pattern: "/trojan/users/del",
-			Handler: caddy.AdminHandlerFunc(al.DelUser),
+			Pattern: "/trojan/users/delete",
+			Handler: caddy.AdminHandlerFunc(al.DeleteUser),
 		},
 	}
 }
 
 // GetUsers is ...
 func (al *Admin) GetUsers(w http.ResponseWriter, r *http.Request) error {
+	if al.Upstream == nil {
+		return nil
+	}
+
 	if r.Method != http.MethodGet {
 		return errors.New("get trojan user method error")
 	}
@@ -85,13 +89,16 @@ func (al *Admin) GetUsers(w http.ResponseWriter, r *http.Request) error {
 
 // AddUser is ...
 func (al *Admin) AddUser(w http.ResponseWriter, r *http.Request) error {
+	if al.Upstream == nil {
+		return nil
+	}
+
 	if r.Method != http.MethodPost {
 		return errors.New("add trojan user method error")
 	}
 
 	type User struct {
 		Password string `json:"password,omitempty"`
-		Key      string `json:"key,omitempty"`
 	}
 
 	b, err := io.ReadAll(r.Body)
@@ -101,12 +108,6 @@ func (al *Admin) AddUser(w http.ResponseWriter, r *http.Request) error {
 	user := User{}
 	if err := json.Unmarshal(b, &user); err != nil {
 		return err
-	}
-	if user.Key != "" {
-		al.Upstream.AddKey(user.Key)
-
-		w.WriteHeader(http.StatusOK)
-		return nil
 	}
 	if user.Password != "" {
 		al.Upstream.Add(user.Password)
@@ -116,15 +117,18 @@ func (al *Admin) AddUser(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-// DelUser is ...
-func (al *Admin) DelUser(w http.ResponseWriter, r *http.Request) error {
+// DeleteUser is ...
+func (al *Admin) DeleteUser(w http.ResponseWriter, r *http.Request) error {
+	if al.Upstream == nil {
+		return nil
+	}
+
 	if r.Method != http.MethodDelete {
 		return errors.New("delete trojan user method error")
 	}
 
 	type User struct {
 		Password string `json:"password,omitempty"`
-		Key      string `json:"key,omitempty"`
 	}
 
 	b, err := io.ReadAll(r.Body)
@@ -135,14 +139,8 @@ func (al *Admin) DelUser(w http.ResponseWriter, r *http.Request) error {
 	if err := json.Unmarshal(b, &user); err != nil {
 		return err
 	}
-	if user.Key != "" {
-		al.Upstream.DelKey(user.Key)
-
-		w.WriteHeader(http.StatusOK)
-		return nil
-	}
 	if user.Password != "" {
-		al.Upstream.Del(user.Password)
+		al.Upstream.Delete(user.Password)
 	}
 
 	w.WriteHeader(http.StatusOK)

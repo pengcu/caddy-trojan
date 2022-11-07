@@ -9,7 +9,7 @@ import (
 
 	"github.com/caddyserver/caddy/v2"
 
-	"github.com/imgk/caddy-trojan/trojan"
+	"github.com/pengcu/caddy-trojan/trojan"
 )
 
 func init() {

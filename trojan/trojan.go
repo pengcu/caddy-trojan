@@ -9,8 +9,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/imgk/caddy-trojan/socks"
-	"github.com/imgk/caddy-trojan/utils"
+	"github.com/pengcu/caddy-trojan/socks"
+	"github.com/pengcu/caddy-trojan/utils"
 )
 
 // HeaderLen is ...
