@@ -58,7 +58,7 @@ func (Handler) CaddyModule() caddy.ModuleInfo {
 // Provision implements caddy.Provisioner.
 func (m *Handler) Provision(ctx caddy.Context) error {
 	m.Logger = ctx.Logger(m)
-	if !ctx.AppIsConfigured(app.CaddyAppID) {
+	if ctx.AppIfConfigured(app.CaddyAppID) == nil {
 		return errors.New("handler: trojan is not configured")
 	}
 	mod, err := ctx.App(app.CaddyAppID)
