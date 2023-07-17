@@ -5,7 +5,6 @@ go 1.19
 require (
 	github.com/caddyserver/caddy/v2 v2.6.4
 	github.com/caddyserver/certmagic v0.19.0
-	github.com/gorilla/websocket v1.5.0
 	github.com/imgk/memory-go v0.0.0-20220328012817-37cdd311f1a3
 	go.uber.org/zap v1.24.0
 	golang.org/x/net v0.12.0
