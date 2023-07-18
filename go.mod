@@ -1,6 +1,6 @@
 module github.com/pengcu/caddy-trojan
 
-go 1.20
+go 1.19
 
 require (
 	github.com/caddyserver/caddy/v2 v2.6.4
@@ -80,7 +80,6 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/shopspring/decimal v1.3.1 // indirect
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
-	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/slackhq/nebula v1.7.2 // indirect
 	github.com/smallstep/certificates v0.24.2 // indirect
 	github.com/smallstep/nosql v0.6.0 // indirect
