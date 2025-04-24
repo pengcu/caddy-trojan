@@ -37,15 +37,18 @@ func HandleUDP(r io.Reader, w io.Writer, timeout time.Duration, d Dialer) (int64
 		}()
 
 		// save previous address
-		ptr, bb := memory.Alloc[byte](socks.MaxAddrLen)
+		ptr, bb, err := memory.Alloc[byte](socks.MaxAddrLen)
+		if err != nil {
+			panic(err)
+		}
 		defer memory.Free(ptr)
 
 		tt := (*net.UDPAddr)(nil)
 
 		ptr, b, err := memory.Alloc[byte](64*1024 + socks.MaxAddrLen)
- 		if err != nil {
- 			panic(err)
- 		}
+		if err != nil {
+			panic(err)
+		}
 		defer memory.Free(ptr)
 
 		for {
@@ -92,9 +95,9 @@ func HandleUDP(r io.Reader, w io.Writer, timeout time.Duration, d Dialer) (int64
 
 	nr, nw, err := func(rc net.PacketConn, w io.Writer, errCh chan Result, timeout time.Duration) (_, nw int64, err error) {
 		ptr, b, err := memory.Alloc[byte](64*1024 + socks.MaxAddrLen + 4)
- 		if err != nil {
- 			panic(err)
- 		}
+		if err != nil {
+			panic(err)
+		}
 		defer memory.Free(ptr)
 
 		b[socks.MaxAddrLen+2] = 0x0d
